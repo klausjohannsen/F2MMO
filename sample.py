@@ -7,14 +7,14 @@ from scipy.spatial import distance_matrix
 ####################################################################################################
 # config
 ####################################################################################################
-N_SOL = 50
+N_SOL = 5
 DIM = 2 
 BUDGET = 1000000
 
 ####################################################################################################
 # solutions, objective function and domain
 ####################################################################################################
-solutions = 0.1 + 0.1 * np.random.rand(N_SOL, DIM)
+solutions = 0.1 + 0.8 * np.random.rand(N_SOL, DIM)
 
 def solutions_found(x):
     dm = distance_matrix(x, solutions)
@@ -24,7 +24,7 @@ def solutions_found(x):
 
 def f(x):
     r = la.norm(solutions - x.reshape(1, -1), axis = 1)
-    return(np.min(r) ** 0.5)
+    return(np.min(r) ** 2)
 
 domain = [[0]*DIM, [1]*DIM]
 
@@ -38,8 +38,7 @@ for m in minimizer:
 
     n = solutions_found(m.solutions)
     print(f'solutions found: {n}')
-    if n % 500 == 0:
-        m.plot_with_score(x = solutions)
+    m.plot_with_score(x = solutions)
 
     print()
     if n == N_SOL:

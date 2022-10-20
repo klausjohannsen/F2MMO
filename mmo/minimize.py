@@ -8,6 +8,7 @@ from copy import deepcopy as copy
 import matplotlib.pyplot as plt
 from sklearn import linear_model
 import mmo
+import random
 
 ###############################################################################
 # classes
@@ -33,38 +34,39 @@ class Cpcma:
         self.ey = np.zeros(0)
         self.l0 = np.min(self.ur - self.ll)
 
-    def score(self, x, n = 5):
+    def score(self, x, n = 10):
         # NN
-        nbrs = NearestNeighbors(n_neighbors = self.dim * n, algorithm = 'ball_tree').fit(self.ex)
+        nbrs = NearestNeighbors(n_neighbors = n, algorithm = 'ball_tree').fit(self.ex)
         distances, indices = nbrs.kneighbors(x)
 
         # distances
         m1 = np.median(distances, axis = 1)
-        m1 = m1 / self.l0
-        m2 = np.inf * np.ones(x.shape[0])
-        for k in range(self.dim):
-            m2 = np.minimum(m2, np.abs(x[:, k] - self.ll[k]))
-            m2 = np.minimum(m2, np.abs(x[:, k] - self.ur[k]))
-        m2 = m2 / self.l0
 
         # linear regression
-        m3 = np.zeros(indices.shape[0])
-        rel_dist = np.zeros(indices.shape[0])
+        m2 = np.zeros(indices.shape[0])
         for k in range(indices.shape[0]):
-            if m1[k] < 0.1:
-                xx = self.ex[indices[k]]
-                yy = self.ey[indices[k]]
-                clf = linear_model.LinearRegression()
-                clf.fit(xx, yy)
-                zz = clf.predict(xx)
-                m3[k] = la.norm(zz - yy) / la.norm(yy)
-            else:
-                m3[k] = np.inf
+            print(f'{k} / {indices.shape[0]}')
+            xx = self.ex[indices[k]]
+            yy = self.ey[indices[k]]
+            clf = linear_model.LinearRegression()
+            zz = np.zeros(10)
+            for kk in range(10):
+                idx = np.random.choice(n, self.dim + 1, replace = False)
+                clf.fit(xx[idx], yy[idx])
+                zz[kk] = clf.predict(x[k].reshape(1, -1))
+
+            #print(x[k])
+            #print()
+            #print(xx)
+            #print()
+            #print(f'{np.mean(zz)} +- {np.std(zz, ddof = 1)}')
+            #print()
+            #print(self.fct(x[k]))
+            #exit()
+            m2[k] = np.std(zz, ddof = 1) / np.mean(zz)
 
         # return
-        r = m1
-        #r = np.minimum(r, m2)
-        r = np.minimum(r, m3)
+        r = m2 
 
         return(r)
 
@@ -97,7 +99,7 @@ class Cpcma:
         self.solutions = np.vstack((self.solutions, cma.x))
         self.ex = np.vstack((self.ex, cma.ex))
         self.ey = np.hstack((self.ey, cma.ey))
-        x = self.ll.reshape(1, self.dim) + (self.ur - self.ll).reshape(1, self.dim) * np.random.rand(10000, self.dim)
+        x = self.ll.reshape(1, self.dim) + (self.ur - self.ll).reshape(1, self.dim) * np.random.rand(1000, self.dim)
         z = self.score(x)
         self.x0 = x[np.argmax(z)]
 
@@ -133,8 +135,8 @@ class Cpcma:
         zz = z.reshape(n ,n)
         plt.figure(figsize=(9, 9))
         plt.pcolor(xx, yy, zz)
-        #if self.ex.shape[0] > 0:
-        #    plt.scatter(self.ex[:, 0], self.ex[:, 1], c = 'white', s = 3)
+        if self.ex.shape[0] > 0:
+            plt.scatter(self.ex[:, 0], self.ex[:, 1], c = 'white', s = 3)
         if x is not None:
             plt.scatter(x[:,0], x[:,1], c = 'orange', s = 50)
         if self.solutions.shape[0] > 0:
