@@ -75,6 +75,7 @@ for k, m in enumerate(minimizer):
     print(f'n_solutions: {n}')
     if n == N_SOL:
         break
+    m.plot_with_score(x = solutions)
 m.plot_with_score(x = solutions)
 
 ####################################################################################################

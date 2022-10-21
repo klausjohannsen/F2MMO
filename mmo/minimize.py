@@ -13,6 +13,33 @@ import random
 ###############################################################################
 # classes
 ###############################################################################
+class Cloud:
+    def __init__(self, ex, ey, x, distances):
+        self.x = x
+        self.ex = ex
+        self.ey = ey
+        self.distances = distances
+        self.distance = np.median(distances)
+
+class Clouds:
+    def __init__(self, ex, ey, n, x):
+        self.ex = ex
+        self.ey = ey
+        self.x = x
+        self.nbrs = NearestNeighbors(n_neighbors = n, algorithm = 'ball_tree').fit(self.ex)
+        self.distances, self.indices = self.nbrs.kneighbors(x)
+
+    def __iter__(self):
+        self.iter = 0
+        return(self)
+
+    def __next__(self):
+        if self.iter == self.x.shape[0]:
+            raise StopIteration
+        c = Cloud(self.ex[self.indices[self.iter]], self.ey[self.indices[self.iter]], self.x[self.iter], self.distances[self.iter])
+        self.iter += 1
+        return(c)
+
 class Cpcma:
     def __init__(self, f = None, domain = None, verbose = 0, budget = np.inf, max_iter = 10**20):
         assert(f is not None)
@@ -35,40 +62,17 @@ class Cpcma:
         self.l0 = np.min(self.ur - self.ll)
 
     def score(self, x, n = 10):
-        # NN
-        nbrs = NearestNeighbors(n_neighbors = n, algorithm = 'ball_tree').fit(self.ex)
-        distances, indices = nbrs.kneighbors(x)
 
-        # distances
-        m1 = np.median(distances, axis = 1)
-
-        # linear regression
-        m2 = np.zeros(indices.shape[0])
-        for k in range(indices.shape[0]):
-            print(f'{k} / {indices.shape[0]}')
-            xx = self.ex[indices[k]]
-            yy = self.ey[indices[k]]
+        m1 = np.zeros(x.shape[0])
+        m2 = np.zeros(x.shape[0])
+        for k, c in enumerate(Clouds(self.ex, self.ey, n, x)):
+            m1[k] = c.distance
             clf = linear_model.LinearRegression()
-            zz = np.zeros(10)
-            for kk in range(10):
-                idx = np.random.choice(n, self.dim + 1, replace = False)
-                clf.fit(xx[idx], yy[idx])
-                zz[kk] = clf.predict(x[k].reshape(1, -1))
+            clf.fit(c.ex, c.ey)
+            y = clf.predict(c.ex)
+            m2[k] = la.norm(c.ey - y) / la.norm(c.ey)
 
-            #print(x[k])
-            #print()
-            #print(xx)
-            #print()
-            #print(f'{np.mean(zz)} +- {np.std(zz, ddof = 1)}')
-            #print()
-            #print(self.fct(x[k]))
-            #exit()
-            m2[k] = np.std(zz, ddof = 1) / np.mean(zz)
-
-        # return
-        r = m2 
-
-        return(r)
+        return(m1 * m2)
 
     def fct(self, x):
         self.n_fct_calls += 1
@@ -76,7 +80,7 @@ class Cpcma:
 
     def __iter__(self):
         self.iter = 0
-        self.sigma = la.norm(self.ur - self.ll) * 0.1
+        self.sigma = la.norm(self.ur - self.ll) * 0.01
         self.x0 = 0.5 * (self.ll + self.ur)
         return(self)
 
@@ -135,8 +139,8 @@ class Cpcma:
         zz = z.reshape(n ,n)
         plt.figure(figsize=(9, 9))
         plt.pcolor(xx, yy, zz)
-        if self.ex.shape[0] > 0:
-            plt.scatter(self.ex[:, 0], self.ex[:, 1], c = 'white', s = 3)
+        #if self.ex.shape[0] > 0:
+        #    plt.scatter(self.ex[:, 0], self.ex[:, 1], c = 'white', s = 3)
         if x is not None:
             plt.scatter(x[:,0], x[:,1], c = 'orange', s = 50)
         if self.solutions.shape[0] > 0:
