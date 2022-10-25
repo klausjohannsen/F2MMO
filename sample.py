@@ -35,6 +35,8 @@ minimizer = mmo.Bscma(f = f, domain = domain, verbose = 1)
 for m in minimizer:
     print(m)
     print()
+    print(m.bt)
+    print()
 
     n = solutions_found(m.solutions)
     print(f'solutions found: {n}')

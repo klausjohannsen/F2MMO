@@ -5,7 +5,7 @@ import numpy as np
 import numpy.linalg as la
 import mmo 
 from modules_cec13.cec2013 import how_many_goptima, CEC2013
-from hyperqueue import Job, LocalCluster
+#from hyperqueue import Job, LocalCluster
 from time import time
 import sys
 
@@ -70,6 +70,7 @@ def n_solutions(x):
 ####################################################################################################
 minimizer = mmo.Bscma(f = f, domain = domain, verbose = 1, budget = BUDGET)
 for k, m in enumerate(minimizer):
+    print(m.bt)
     print(m)
     n = n_solutions(m.solutions)
     print(f'n_solutions: {n}')

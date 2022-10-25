@@ -20,7 +20,7 @@ def linear_eval(xy):
 
 # classes
 class Node:
-    def __init__(self, ll = None, ur = None, xy = None):
+    def __init__(self, ll = None, ur = None, xy = None, score_limit = 0):
         self.ll = ll
         self.ur = ur
         self.dim = self.ll.shape[0]
@@ -31,6 +31,10 @@ class Node:
         self.n2 = None
         if self.dim == 2:
             self.score = np.exp(self.logvolume + np.log(self.rle))
+        if score_limit >= 0:
+            self.score_limit = score_limit
+        else:
+            self.score_limit = - score_limit * self.score
 
     def __str__(self):
         s = '# node\n'
@@ -48,30 +52,9 @@ class Node:
         eta = (x_median - self.ll[axis]) / (self.ur[axis] - self.ll[axis])
         return(axis, x_median)
 
-    def split_parameters_(self):
-        x = self.xy[0]
-        centroids, _ = kmeans(x, 2)
-        idx, _ = vq(x, centroids)
-        mp = 0.5 * (centroids[0] + centroids[1])
-        axis = -1
-        n_max = -1
-        x1 = x[idx == 0]
-        x2 = x[idx == 1]
-        for k in range(self.dim):
-            n1 = np.sum(x1[:, k] < mp[k]) + np.sum(x2[:, k] >= mp[k])
-            n2 = np.sum(x2[:, k] < mp[k]) + np.sum(x1[:, k] >= mp[k])
-            n = max(n1, n2)
-            print(f'k: {k}, n1: {n1}, n2: {n2}, n: {n}')
-            if n > n_max:
-                n_max = min(n1, n2)
-                axis = k
-        #plt.scatter(x1[:, 0], x1[:, 1], color = 'red')
-        #plt.scatter(x2[:, 0], x2[:, 1], color = 'blue')
-        #plt.scatter(mp[0], mp[1], color = 'black')
-        #plt.show()
-        return(axis, mp[axis])
-
     def split_(self):
+        if self.score < self.score_limit:
+            return(False)
         assert(self.n1 == None)
         assert(self.n2 == None)
         x = self.xy[0]
@@ -96,8 +79,8 @@ class Node:
             return(False)
         if np.sum(isin_2) < 5 * self.dim:
             return(False)
-        self.n1 = Node(ll = ll_1, ur = ur_1, xy = [x[isin_1], y[isin_1]])
-        self.n2 = Node(ll = ll_2, ur = ur_2, xy = [x[isin_2], y[isin_2]])
+        self.n1 = Node(ll = ll_1, ur = ur_1, xy = [x[isin_1], y[isin_1]], score_limit = self.score_limit)
+        self.n2 = Node(ll = ll_2, ur = ur_2, xy = [x[isin_2], y[isin_2]], score_limit = self.score_limit)
         return(True)
 
     def split(self):
@@ -114,14 +97,25 @@ class Node:
             return(lnl_1 + lnl_2)
 
 class BinaryTree:
-    def __init__(self, domain = None, xy = None):
+    def __init__(self, domain = None, xy = None, score_limit = -0.1):
         self.domain = domain
         self.xy = xy
         self.ll = np.array(self.domain[0], dtype = float)
         self.ur = np.array(self.domain[1], dtype = float)
         self.dim = self.ll.shape[0]
-        self.root = Node(ll = self.ll, ur = self.ur, xy = self.xy)
+        self.score_limit = score_limit
+        self.root = Node(ll = self.ll, ur = self.ur, xy = self.xy, score_limit = self.score_limit)
         self.root.split()
+
+    def __str__(self):
+        s = '# binary tree\n'
+        s += f'll = {self.ll}\n'
+        s += f'ur = {self.ur}\n'
+        s += f'dim = {self.dim}\n'
+        s += f'data = {self.xy[0].shape}\n'
+        s += f'n_leaf = {len(self.leaf_nodes())}\n'
+        s += f'score_limit = {self.score_limit}\n'
+        return(s)
 
     def leaf_nodes(self):
         return(self.root.leaf_nodes())
@@ -164,7 +158,6 @@ class BinaryTree:
             plt.scatter(x[:,0], x[:,1], c = c, s = s)
         plt.xlim(self.ll[0], self.ur[0])
         plt.ylim(self.ll[1], self.ur[1])
-        plt.colorbar(scalarMap, ax = ax)
         plt.show()
 
 
