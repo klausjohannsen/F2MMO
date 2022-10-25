@@ -68,15 +68,16 @@ def n_solutions(x):
 ####################################################################################################
 # run
 ####################################################################################################
-minimizer = mmo.Cpcma(f = f, domain = domain, verbose = 1, budget = BUDGET)
+minimizer = mmo.Bscma(f = f, domain = domain, verbose = 1, budget = BUDGET)
 for k, m in enumerate(minimizer):
     print(m)
     n = n_solutions(m.solutions)
     print(f'n_solutions: {n}')
     if n == N_SOL:
         break
-    m.plot_with_score(x = solutions)
-m.plot_with_score(x = solutions)
+    #m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
+
+m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
 
 ####################################################################################################
 # peak rate

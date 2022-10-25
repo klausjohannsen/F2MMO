@@ -151,6 +151,75 @@ class Cpcma:
         plt.show()
 
 
+###############################################################################
+# classes
+###############################################################################
+class Bscma:
+    def __init__(self, f = None, domain = None, verbose = 0, budget = np.inf, max_iter = 10**20):
+        assert(f is not None)
+        assert(domain is not None)
+        self.f = f
+        self.domain = domain
+        self.dim = len(self.domain[0])
+        self.budget = budget
+        self.max_iter = max_iter
+        self.verbose_1 = verbose >= 1
+        self.verbose_2 = verbose >= 2
+        self.verbose_3 = verbose >= 3
+        self.n_fct_calls = 0
+        self.n_local_solves = 0
+        self.solutions = np.zeros((0, self.dim))
+        self.ll = np.array(self.domain[0], dtype = float)
+        self.ur = np.array(self.domain[1], dtype = float)
+        self.ex = np.zeros((0, self.dim))
+        self.ey = np.zeros(0)
+        self.l0 = np.min(self.ur - self.ll)
+
+    def fct(self, x):
+        self.n_fct_calls += 1
+        return(self.f(x))
+
+    def __iter__(self):
+        self.iter = 0
+        self.sigma = la.norm(self.ur - self.ll) * 0.1
+        self.x0 = 0.5 * (self.ll + self.ur)
+        return(self)
+
+    def __str__(self):
+        s = ''
+        if self.verbose_1:
+            s += '## Bisection MultiModalMinimizer\n'
+            s += f'll: {self.ll}\n'
+            s += f'ur: {self.ur}\n'
+            s += f'iteration: {self.iter - 1}\n'
+            s += f'n_local_solves: {self.n_local_solves}\n'
+            s += f'n_fct_calls: {self.n_fct_calls}\n'
+            s += f'n_solutions: {self.solutions.shape[0]}\n'
+        return(s)
+
+    def __next__(self):
+        # search 
+        cma = mmo.Cma(f = self.fct, x0 = self.x0, sigma = self.sigma)
+        self.n_local_solves += 1
+        self.solutions = np.vstack((self.solutions, cma.x))
+        self.ex = np.vstack((self.ex, cma.ex))
+        self.ey = np.hstack((self.ey, cma.ey))
+
+        # score obtained by bisection
+        self.bt = mmo.BinaryTree(domain = self.domain, xy = [self.ex, self.ey])
+        #self.bt.plot(p = [(solutions, 'orange', 50), (m.solutions, 'green', 20)])
+        self.x0, self.sigma = self.bt.seed()
+
+        # stop
+        if self.n_fct_calls >= self.budget or self.iter >= self.max_iter:
+            raise StopIteration
+
+        # admin
+        self.iter += 1
+        return(copy(self))
+
+
+
 
 
 
