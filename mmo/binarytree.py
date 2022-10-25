@@ -5,6 +5,7 @@ from copy import deepcopy as copy
 from matplotlib import pyplot as plt, patches
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+from scipy.cluster.vq import kmeans, vq
 
 # fcts
 def linear_eval(xy):
@@ -40,19 +41,50 @@ class Node:
         s += f'leaf = {self.n1 == None}'
         return(s)
 
+    def split_parameters(self):
+        x = self.xy[0]
+        axis = np.argmax(self.ur - self.ll)
+        x_median = np.median(x[:, axis])
+        eta = (x_median - self.ll[axis]) / (self.ur[axis] - self.ll[axis])
+        return(axis, x_median)
+
+    def split_parameters_(self):
+        x = self.xy[0]
+        centroids, _ = kmeans(x, 2)
+        idx, _ = vq(x, centroids)
+        mp = 0.5 * (centroids[0] + centroids[1])
+        axis = -1
+        n_max = -1
+        x1 = x[idx == 0]
+        x2 = x[idx == 1]
+        for k in range(self.dim):
+            n1 = np.sum(x1[:, k] < mp[k]) + np.sum(x2[:, k] >= mp[k])
+            n2 = np.sum(x2[:, k] < mp[k]) + np.sum(x1[:, k] >= mp[k])
+            n = max(n1, n2)
+            print(f'k: {k}, n1: {n1}, n2: {n2}, n: {n}')
+            if n > n_max:
+                n_max = min(n1, n2)
+                axis = k
+        #plt.scatter(x1[:, 0], x1[:, 1], color = 'red')
+        #plt.scatter(x2[:, 0], x2[:, 1], color = 'blue')
+        #plt.scatter(mp[0], mp[1], color = 'black')
+        #plt.show()
+        return(axis, mp[axis])
+
     def split_(self):
         assert(self.n1 == None)
         assert(self.n2 == None)
         x = self.xy[0]
         y = self.xy[1]
-        axis = np.argmax(self.ur - self.ll)
-        x_median = np.median(x[:, axis])
+        axis, x_div = self.split_parameters()
+        #axis = np.argmax(self.ur - self.ll)
+        #x_median = np.median(x[:, axis])
         ll_1 = copy(self.ll)
         ur_1 = copy(self.ur)
         ll_2 = copy(self.ll)
         ur_2 = copy(self.ur)
-        ur_1[axis] = x_median
-        ll_2[axis] = x_median
+        ur_1[axis] = x_div
+        ll_2[axis] = x_div
         isin_1 = np.zeros(x.shape[0], dtype = bool)
         isin_2 = np.zeros(x.shape[0], dtype = bool)
         for k in range(x.shape[0]):
