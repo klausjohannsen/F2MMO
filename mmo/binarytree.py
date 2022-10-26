@@ -158,6 +158,7 @@ class BinaryTree:
             plt.scatter(x[:,0], x[:,1], c = c, s = s)
         plt.xlim(self.ll[0], self.ur[0])
         plt.ylim(self.ll[1], self.ur[1])
+        plt.colorbar(scalarMap, orientation="vertical")
         plt.show()
 
 

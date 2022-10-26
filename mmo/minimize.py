@@ -174,7 +174,8 @@ class Bscma:
         self.ex = np.zeros((0, self.dim))
         self.ey = np.zeros(0)
         self.l0 = np.min(self.ur - self.ll)
-        self.score_limit = -0.1
+        self.score_limit_factor = 0.5
+        self.score_limit = -self.score_limit_factor
 
     def fct(self, x):
         self.n_fct_calls += 1
@@ -209,10 +210,10 @@ class Bscma:
         # score obtained by bisection
         self.bt = mmo.BinaryTree(domain = self.domain, xy = [self.ex, self.ey], score_limit = self.score_limit)
         self.x0, self.sigma = self.bt.seed()
-        #self.score_limit = np.inf
-        #for node in self.bt.leaf_nodes():
-        #    self.score_limit = min(self.score_limit, node.score)
-        self.score_limit *= 0.1
+        self.score_limit = -np.inf
+        for node in self.bt.leaf_nodes():
+            self.score_limit = max(self.score_limit, node.score)
+        self.score_limit *= self.score_limit_factor
 
         # stop
         if self.n_fct_calls >= self.budget or self.iter >= self.max_iter:
