@@ -18,8 +18,8 @@ def moving_average(a, n = 10):
 
 # cma
 class Cma:
-    def __init__(self, f = None, x0 = None, sigma = None, max_gen = 10**20):
-        optimizer = CMA(mean = x0, sigma = sigma)
+    def __init__(self, f = None, x0 = None, C = None, max_gen = 10**20, bounds = None):
+        optimizer = CMA(mean = x0, sigma = 1, cov = C, bounds = bounds)
         y_best = np.inf
         n_fct_eval = 0
         ex = []

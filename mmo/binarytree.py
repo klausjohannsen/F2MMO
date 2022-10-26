@@ -26,11 +26,10 @@ class Node:
         self.dim = self.ll.shape[0]
         self.xy = xy
         self.rle = linear_eval(self.xy)
-        self.logvolume = np.sum(np.log(self.ur - self.ll))
+        self.volume = np.prod(self.ur - self.ll)
         self.n1 = None
         self.n2 = None
-        if self.dim == 2:
-            self.score = np.exp(self.logvolume + np.log(self.rle))
+        self.score = self.volume * self.rle
         if score_limit >= 0:
             self.score_limit = score_limit
         else:
@@ -60,21 +59,14 @@ class Node:
         x = self.xy[0]
         y = self.xy[1]
         axis, x_div = self.split_parameters()
-        #axis = np.argmax(self.ur - self.ll)
-        #x_median = np.median(x[:, axis])
         ll_1 = copy(self.ll)
         ur_1 = copy(self.ur)
         ll_2 = copy(self.ll)
         ur_2 = copy(self.ur)
         ur_1[axis] = x_div
         ll_2[axis] = x_div
-        isin_1 = np.zeros(x.shape[0], dtype = bool)
-        isin_2 = np.zeros(x.shape[0], dtype = bool)
-        for k in range(x.shape[0]):
-            if np.all(x[k] >= ll_1) and np.all(x[k] < ur_1):
-                isin_1[k] = True
-            if np.all(x[k] >= ll_2) and np.all(x[k] < ur_2):
-                isin_2[k] = True
+        isin_1 = np.all(np.logical_and(x >= ll_1.reshape(1, -1), x < ur_1.reshape(1, -1)), axis = 1)
+        isin_2 = np.all(np.logical_and(x >= ll_2.reshape(1, -1), x < ur_2.reshape(1, -1)), axis = 1)
         if np.sum(isin_1) < 5 * self.dim:
             return(False)
         if np.sum(isin_2) < 5 * self.dim:
@@ -120,16 +112,19 @@ class BinaryTree:
     def leaf_nodes(self):
         return(self.root.leaf_nodes())
 
-    def seed(self):
+    def seed(self, bounds = False):
         n_best = None
         best_score = -np.inf
         for n in self.root.leaf_nodes():
             if n.score > best_score:
                 n_best = n
                 best_score = n.score
-        sigma = 0.1 * np.min(n_best.ur - n_best.ll)
+        C = 0.333 * np.diag(n_best.ur - n_best.ll)
         x0 = 0.5 * (n_best.ll + n_best.ur)
-        return(x0, sigma)
+        r_bounds = None
+        if bounds:
+            r_bounds = np.vstack((n_best.ll, n_best.ur)).T
+        return(x0, C, r_bounds)
 
     def plot(self, p = None):
         if self.dim != 2:

@@ -155,7 +155,7 @@ class Cpcma:
 # classes
 ###############################################################################
 class Bscma:
-    def __init__(self, f = None, domain = None, verbose = 0, budget = np.inf, max_iter = 10**20):
+    def __init__(self, f = None, domain = None, verbose = 0, budget = np.inf, max_iter = 10**20, bounds = False):
         assert(f is not None)
         assert(domain is not None)
         self.f = f
@@ -176,6 +176,7 @@ class Bscma:
         self.l0 = np.min(self.ur - self.ll)
         self.score_limit_factor = 0.5
         self.score_limit = -self.score_limit_factor
+        self.bounds = bounds
 
     def fct(self, x):
         self.n_fct_calls += 1
@@ -183,8 +184,9 @@ class Bscma:
 
     def __iter__(self):
         self.iter = 0
-        self.sigma = la.norm(self.ur - self.ll) * 0.1
+        self.C = 0.333 * np.diag(self.ur - self.ll)
         self.x0 = 0.5 * (self.ll + self.ur)
+        self.cma_bounds = np.vstack((self.ll, self.ur)).T if self.bounds else None
         return(self)
 
     def __str__(self):
@@ -201,7 +203,7 @@ class Bscma:
 
     def __next__(self):
         # search 
-        cma = mmo.Cma(f = self.fct, x0 = self.x0, sigma = self.sigma)
+        cma = mmo.Cma(f = self.fct, x0 = self.x0, C = self.C, bounds = self.cma_bounds)
         self.n_local_solves += 1
         self.solutions = np.vstack((self.solutions, cma.x))
         self.ex = np.vstack((self.ex, cma.ex))
@@ -209,7 +211,7 @@ class Bscma:
 
         # score obtained by bisection
         self.bt = mmo.BinaryTree(domain = self.domain, xy = [self.ex, self.ey], score_limit = self.score_limit)
-        self.x0, self.sigma = self.bt.seed()
+        self.x0, self.C, self.cma_bounds = self.bt.seed(self.bounds)
         self.score_limit = -np.inf
         for node in self.bt.leaf_nodes():
             self.score_limit = max(self.score_limit, node.score)

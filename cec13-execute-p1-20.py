@@ -5,8 +5,6 @@ import numpy as np
 import numpy.linalg as la
 import mmo 
 from modules_cec13.cec2013 import how_many_goptima, CEC2013
-#from hyperqueue import Job, LocalCluster
-from time import time
 import sys
 
 ####################################################################################################
@@ -39,6 +37,7 @@ UR = []
 for d in range(DIM):
     LL += [cec.get_lbound(d)]
     UR += [cec.get_ubound(d)]
+
 f = lambda x: -cec.evaluate(x)
 domain = [LL, UR]
 
@@ -77,10 +76,10 @@ for k, m in enumerate(minimizer):
     print(f'n_solutions: {n}')
     if n == N_SOL:
         break
-    if k % 10 == 0:
-        m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
+    #if k % 10 == 0:
+    #    m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
 
-m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
+#m.bt.plot(p = [(m.ex, 'white', 1), (solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
 
 ####################################################################################################
 # peak rate
@@ -100,8 +99,6 @@ print("## N solutions")
 print("#####################")
 print(PROBLEM, peake_rate)
 print()
-
-
 
 
 

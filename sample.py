@@ -3,6 +3,7 @@ import numpy as np
 import numpy.linalg as la
 import mmo
 from scipy.spatial import distance_matrix
+from modules import t
 
 ####################################################################################################
 # config
@@ -48,6 +49,5 @@ for m in minimizer:
         break
     
 m.bt.plot(p = [(solutions, 'orange', 50), (m.solutions, 'green', 20), (m.x0.reshape(1, -1), 'red', 50)])
-
 
 
